@@ -64,4 +64,39 @@ authRouter.post("/signup", async (req, res) => {
     }
 });
 
+authRouter.post("/login", async (req, res) => {
+    try{
+        const { email, password } = req.body;
+        
+        const existingUser = await User.findOne({ email });
+        if(!existingUser) {
+            throw new Error("Invalid credentials!");
+        }
+
+        const accessToken = await existingUser.getJWT();
+        const isPasswordValid = await existingUser.comparePassword(password);
+        if(!isPasswordValid) {
+            throw new Error("Invalid credentials!");
+        }
+
+        const { password: _, ...userWithoutPassword } = existingUser.toObject();
+
+        res.json({ 
+            success: true,
+            message: "User Logged in successfully!", 
+            data: userWithoutPassword, 
+        });
+    } catch(err) {
+        console.error({
+            code: err.code || 'UNKNOWN_ERROR',
+            details: err.stack
+        });
+        return res.status(400).json({
+            success: false,
+            message: err.message,
+        });
+    }
+});
+
+
 module.exports = authRouter;
