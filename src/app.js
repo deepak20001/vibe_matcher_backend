@@ -6,10 +6,12 @@ const http = require("http");
 const app = express();
 app.use(express.json());
 
-const authRouter = require("./routes/auth");  
+const authRouter = require("./routes/auth"); 
+const uploadRouter = require("./routes/upload");
 
 // Mount the router
 app.use("/auth", authRouter);
+app.use("/upload", uploadRouter);
 
 const server = http.createServer(app);
 
