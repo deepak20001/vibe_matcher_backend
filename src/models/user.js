@@ -59,11 +59,16 @@ const userSchema = new mongoose.Schema({
         validate(value) {
             if(value.length != 3) {
                 throw new Error("Please upload all 3 photos");
+                }
             }
-        }
+        },
+    }, 
+    {
+        timestamps: true,
     },
-});
+);
 
+/// Generate JWT token
 userSchema.methods.getJWT = async function() {
     const user = this;
 
@@ -76,6 +81,7 @@ userSchema.methods.getJWT = async function() {
     return token;
 }
 
+/// Compare password with hashed password
 userSchema.methods.comparePassword = async function(password) {
     const user = this;
     const passwordHash = user.password;

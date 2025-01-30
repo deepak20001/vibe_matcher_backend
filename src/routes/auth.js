@@ -43,6 +43,8 @@ authRouter.post("/signup", async (req, res) => {
 
         /// Save the user
         const savedUser = await user.save();
+
+        const accessToken = await savedUser.getJWT();
         
         /// savedUser.toObject() to convert the MongoDB document to a plain object
         const { password: _, ...userWithoutPassword } = savedUser.toObject();
@@ -50,7 +52,10 @@ authRouter.post("/signup", async (req, res) => {
         res.json({ 
             success: true,
             message: "User registered successfully!", 
-            data: userWithoutPassword, 
+            data: {
+                userWithoutPassword,
+                accessToken,
+            }, 
         });
     } catch(err) {
         console.error({
@@ -84,7 +89,10 @@ authRouter.post("/login", async (req, res) => {
         res.json({ 
             success: true,
             message: "User Logged in successfully!", 
-            data: userWithoutPassword, 
+            data:  {
+                userWithoutPassword,
+                accessToken,
+            }, 
         });
     } catch(err) {
         console.error({

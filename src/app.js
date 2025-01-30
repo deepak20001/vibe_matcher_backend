@@ -8,10 +8,14 @@ app.use(express.json());
 
 const authRouter = require("./routes/auth"); 
 const uploadRouter = require("./routes/upload");
+const feedRouter = require("./routes/feed");
+const connectionRouter = require("./routes/connection");
 
 // Mount the router
 app.use("/auth", authRouter);
 app.use("/upload", uploadRouter);
+app.use("/feed", feedRouter);
+app.use("/connection", connectionRouter);
 
 const server = http.createServer(app);
 

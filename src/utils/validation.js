@@ -16,7 +16,7 @@ const ValidateSignUpData = (req) => {
         throw new Error("Invalid name");
     } else if(!email || !validator.isEmail(email)) {
         throw new Error("Invalid email");
-    } else if(!validator.isStrongPassword(password)) {
+    } else if(password.length < 8) {
         throw new Error("Weak password");
     } else if(!address) {
         throw new Error("Invalid address");
