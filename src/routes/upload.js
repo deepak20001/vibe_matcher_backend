@@ -1,8 +1,10 @@
 const express = require("express");
 const multer = require("multer");
 const uploadFileToCloudinary = require("../utils/cloudinary");
+const sharp = require('sharp');
 const uploadRouter = express.Router();
 
+/// Multer disk storage
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, "./public/temp");
@@ -15,6 +17,23 @@ const storage = multer.diskStorage({
     
 });
 
+/// Process image using sharp
+const processImage = async(filePath) => {
+    try {
+        const processedImageBuffer = await sharp(filePath)
+            .resize(1080, 1080, {
+                fit: 'cover',
+                position: 'center'
+            })
+            .toBuffer();
+
+        return processedImageBuffer;
+    } catch (error) {
+        console.error('Image processing error:', error);
+        throw new Error('Failed to process image');
+    }
+}
+
 /// Upload file to disk
 const upload = multer({ storage: storage });
 
@@ -25,6 +44,12 @@ uploadRouter.post("/single", upload.single('image'), async (req, res) => {
         if (!req.file) {
             throw new Error("Please upload a file");
         }
+
+        // Process image before upload
+        const processedImage = await processImage(req.file.path);
+        
+        // Write processed image back to file
+        await sharp(processedImage).toFile(req.file.path);
 
         const uploadedFile = await uploadFileToCloudinary(req.file.path);
 
@@ -51,7 +76,16 @@ uploadRouter.post("/multiple", upload.array('images', 3), async (req, res) => {
             throw new Error("Please upload at least one image");
         }
 
-        const uploadPromises = req.files.map((file) => uploadFileToCloudinary(file.path));
+        // Process each image
+        const processPromises = req.files.map(async (file) => {
+            const processedImage = await processImage(file.path);
+            await sharp(processedImage).toFile(file.path);
+            return file.path;
+        });
+
+        const processedPaths = await Promise.all(processPromises);
+
+        const uploadPromises = processedPaths.map((path) => uploadFileToCloudinary(path));
         const uploadedFiles = await Promise.all(uploadPromises);
 
         res.json({

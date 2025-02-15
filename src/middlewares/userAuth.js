@@ -4,6 +4,7 @@ const User = require("../models/user");
 const userAuth = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
+
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             throw new Error("No token provided");
         }

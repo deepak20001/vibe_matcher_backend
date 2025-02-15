@@ -53,7 +53,7 @@ authRouter.post("/signup", async (req, res) => {
             success: true,
             message: "User registered successfully!", 
             data: {
-                userWithoutPassword,
+                user: userWithoutPassword,
                 accessToken,
             }, 
         });
@@ -73,16 +73,21 @@ authRouter.post("/login", async (req, res) => {
     try{
         const { email, password } = req.body;
         
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ email});
+        console.log(email);
+        console.log(password);
+        console.log(existingUser);
         if(!existingUser) {
             throw new Error("Invalid credentials!");
         }
 
-        const accessToken = await existingUser.getJWT();
         const isPasswordValid = await existingUser.comparePassword(password);
         if(!isPasswordValid) {
             throw new Error("Invalid credentials!");
         }
+        
+        /// Generate token
+        const accessToken = await existingUser.getJWT();
 
         const { password: _, ...userWithoutPassword } = existingUser.toObject();
 
@@ -90,7 +95,7 @@ authRouter.post("/login", async (req, res) => {
             success: true,
             message: "User Logged in successfully!", 
             data:  {
-                userWithoutPassword,
+                user: userWithoutPassword,
                 accessToken,
             }, 
         });
