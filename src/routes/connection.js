@@ -6,7 +6,43 @@ const userAuth = require("../middlewares/userAuth");
 
 const connectionRouter = express.Router();
 
-connectionRouter.get("/", userAuth, async(req, res) => {
+connectionRouter.get("/connections", userAuth, async(req, res) => {
+    try {
+        const connections = await Connection.find({
+            $or: [
+                { fromUserId: req.user?._id },
+                { toUserId: req.user?._id },
+            ],
+            status: "accepted",
+        }).populate("fromUserId toUserId", "name profilePhotos");
+
+        // Rename `fromUserId` to `fromUserData` in the response
+        const formattedConnections = connections.map(connection => ({
+            ...connection._doc,
+            fromUserData: connection.fromUserId,
+            fromUserId: undefined, // Remove the old field
+            toUserData: connection.toUserId,
+            toUserId: undefined, // Remove the old field
+        }));
+
+        res.json({
+            success: true,
+            message: "Connections fetched successfully!", 
+            data: formattedConnections,
+        });
+    } catch (err) {
+        console.error({
+            code: err.code || "UNKNOWN_ERROR",
+            details: err.stack,
+        });
+        return res.status(400).json({
+            success: false,
+            message: err.message,
+        });
+    }
+});
+
+connectionRouter.get("/requests", userAuth, async(req, res) => {
     try {
         const connections = await Connection.find({
             toUserId: req.user?._id,
@@ -36,6 +72,7 @@ connectionRouter.get("/", userAuth, async(req, res) => {
         });
     }
 });
+
 
 connectionRouter.post("/send/:updateStatus/:toUserId", userAuth,  async (req, res) => {
     try {
