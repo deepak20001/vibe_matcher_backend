@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const User = require("../models/user");
 const Connection = require("../models/connection");
+const Chat = require("../models/chat");
 const userAuth = require("../middlewares/userAuth");
 
 const connectionRouter = express.Router();
@@ -15,15 +16,52 @@ connectionRouter.get("/connections", userAuth, async(req, res) => {
             ],
             status: "accepted",
         }).populate("fromUserId toUserId", "name profilePhotos");
+        
+        // Get chats for all connections
+        const formattedConnections = await Promise.all(connections.map( async connection => {
+            // Find chat between these users
+            const chat = await Chat.findOne({
+                participants: {
+                    $all: [
+                        connection.fromUserId._id,
+                        connection.toUserId._id,
+                    ],
+                },
+            });
+            
+            // Get last message and unread count
+            const lastMessage = (chat?.messages?.length > 0) ? 
+                chat.messages[chat.messages.length - 1] : 
+                null;
+            
+            // Count unread messages for logged in user
+            const unreadCount = chat?.messages?.filter(msg => 
+                msg.senderId.toString() !== req.user._id.toString() && !msg.isRead
+            ).length || 0;
 
-        // Rename `fromUserId` to `fromUserData` in the response
-        const formattedConnections = connections.map(connection => ({
-            ...connection._doc,
-            fromUserData: connection.fromUserId,
-            fromUserId: undefined, // Remove the old field
-            toUserData: connection.toUserId,
-            toUserId: undefined, // Remove the old field
+            return {
+                ...connection._doc,
+                fromUserData: connection.fromUserId,
+                toUserData: connection.toUserId,
+                lastMessage: lastMessage ? {
+                    _id: lastMessage._id,
+                    text: lastMessage.text,
+                    senderId: lastMessage.senderId,
+                    createdAt: lastMessage.createdAt,
+                    isRead: lastMessage.isRead
+                } : null,
+                unreadCount,
+                fromUserId: undefined,
+                toUserId: undefined
+            };
         }));
+        
+        // Sort by last message timestamp (most recent first)
+        formattedConnections.sort((a, b) => {
+            const timeA = a.lastMessage?.createdAt || a.createdAt;
+            const timeB = b.lastMessage?.createdAt || b.createdAt;
+            return new Date(timeB) - new Date(timeA);
+        });
 
         res.json({
             success: true,
